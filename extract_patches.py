@@ -1,8 +1,6 @@
 import argparse
 from histoprep import SlideReader
-import numpy as np
 import os
-import openslide
 
 # Create the parser
 parser = argparse.ArgumentParser(
@@ -38,24 +36,32 @@ parser.add_argument(
 # Parse the arguments
 args = parser.parse_args()
 
-# Initiate SlideReader
-reader = SlideReader(args.SlidesPath)
+# Loop over the files in the slides directory
+for filename in os.listdir(args.SlidesPath):
+    # Check if file is a .svs or .tiff file
+    if filename.endswith(".svs") or filename.endswith(".tiff"):
+        # Full file path
+        file_path = os.path.join(args.SlidesPath, filename)
 
-threshold, tissue_mask = reader.get_tissue_mask(level=-1)
+        # Initiate SlideReader for each file
+        reader = SlideReader(file_path)
 
-# Extract overlapping tile coordinates with less than the proportion of background specified
-tile_coordinates = reader.get_tile_coordinates(
-    tissue_mask,
-    width=args.PatchSize,
-    overlap=args.Overlap,
-    max_background=args.MaxBackground,
-)
+        threshold, tissue_mask = reader.get_tissue_mask(level=-1)
 
-coords = tile_coordinates.coordinates
-tile_metadata = reader.save_regions(
-    args.SavePath,
-    tile_coordinates,
-    threshold=threshold,
-    save_metrics=True,
-    overwrite=True,
-)
+        # Extract overlapping tile coordinates with less than the proportion of background specified
+        tile_coordinates = reader.get_tile_coordinates(
+            tissue_mask,
+            width=args.PatchSize,
+            overlap=args.Overlap,
+            max_background=args.MaxBackground,
+        )
+
+        tile_metadata = reader.save_regions(
+            args.SavePath,
+            tile_coordinates,
+            threshold=threshold,
+            save_metrics=False,
+            overwrite=True,
+        )
+    else:
+        print(f"Skipping file {filename} as it is not a .svs or .tiff file.")
